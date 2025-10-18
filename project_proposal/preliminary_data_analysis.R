@@ -1,7 +1,8 @@
 library(ggplot2)
 library(dplyr)
 library(tidyr)
-df <- read.csv("training_data_clean.csv")
+library(here)
+df <- read.csv(here("data/data_clean.csv"))
 # Converting ordinal data to actual numbers
 df <- df %>%
   mutate(
