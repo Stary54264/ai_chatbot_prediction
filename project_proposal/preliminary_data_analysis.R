@@ -2,7 +2,7 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 library(here)
-df <- read.csv(here("data/data_clean.csv"))
+df <- read.csv(here("data/data_raw.csv"))
 # Converting ordinal data to actual numbers
 df <- df %>%
   mutate(
@@ -62,6 +62,4 @@ ggplot(df_summary, aes(x = Feature, y = mean_value, fill = label)) +
     plot.title = element_text(size = 14, face = "bold")
   )
 
-
-
-
+write.csv(df, here("data/data_clean.csv"))
