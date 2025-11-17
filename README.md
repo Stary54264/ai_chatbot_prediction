@@ -1,5 +1,28 @@
 # AI Chatbot Prediction
 
+## TODO
+
+### Data
+
+- [ ] Split and clean data (Yanzun)
+
+### Model
+
+- [ ] Organize and zip the code and data
+
+#### Naive Bayes
+
+- [ ] Make the function compatible for new data (Yanzun)
+
+#### Logistic Regression
+
+#### Random Forest
+
+### Report
+
+- [ ] Draft the report
+- [ ] Check the items in the rubric
+
 ## Overview
 
 This repo contains the prediction of different AI chatbots using various ML models.
