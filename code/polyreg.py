@@ -292,20 +292,67 @@ def preprocess_test_features(df_test, target_tasks, transformers):
 
 def train_model(X_train, y_train):
     """
-    Performs GridSearchCV for base models and trains the final StackingClassifier.
+    1) GridSearchCV for Logistic Regression.
+    2) GridSearchCV for RandomForest.
+    3) Build a StackingClassifier (RF + LR -> LR meta).
+    4) Wrap the stacking classifier in a BaggingClassifier and tune n_estimators.
+    
     """
     print("Training models...")
 
     # ---Logistic Regression GridSearch---
     print("Running GridSearchCV for LogisticRegression...")
     param_grid_lr = [
-        {'C': [0.2, 0.4, 0.6], 'penalty': ['elasticnet'], 'l1_ratio': [0.2, 1],
-         'solver': ['saga'], 'fit_intercept': [True, False], 'max_iter': [2000],
-         'tol': [0.001]}
+        {
+            'C': [0.2, 0.4, 0.6], 
+            'penalty': ['elasticnet'], 
+            'l1_ratio': [0.2, 1],
+            'solver': ['saga'], 
+            'fit_intercept': [True, False], 
+            'max_iter': [2000],
+            'tol': [0.003]
+        }
     ]
-    lr_search = GridSearchCV(LogisticRegression(), param_grid_lr, cv=3, scoring='accuracy', refit=True, n_jobs=-1, verbose=1)
+    lr_search = GridSearchCV(
+        LogisticRegression(), 
+        param_grid_lr, cv=3, 
+        scoring='accuracy', 
+        refit=True, 
+        n_jobs=-1, 
+        verbose=1
+    )
     lr_search.fit(X_train, y_train)
     print(f"Best LR Params: {lr_search.best_params_}")
+
+    # ---RF GridSearch---
+    print("Running GridSearchCV for RandomForestClassifier...")
+    param_grid_rf = [
+        {
+            'n_estimators': [100, 200, 300],
+            'max_depth': [5, 10, 15],
+            'min_samples_split': [2, 5],
+            'min_samples_leaf': [1, 2],
+        }
+    ]
+    rf_search = GridSearchCV(
+        RandomForestClassifier(random_state=42),
+        param_grid_rf,
+        cv=3,
+        scoring='accuracy',
+        refit=True,
+        n_jobs=-1,
+        verbose=1,
+    )
+    rf_search.fit(X_train, y_train)
+    print(f"Best RF Params: {rf_search.best_params_}")
+
+    # ---Stacking Classifier---
+    print("Building StackingClassifier (RandomForest + LogisticRegression)...")
+    base_rf = RandomForestClassifier(
+        **rf_search.best_params_,
+        random_state=42,
+        n_jobs=-1,
+    )
 
     # --- Build tuned LogisticRegression base estimator ---
     base_lr = LogisticRegression(
@@ -317,46 +364,26 @@ def train_model(X_train, y_train):
         tol=lr_search.best_params_['tol'],
         l1_ratio=lr_search.best_params_['l1_ratio'],
     )
+    
+    estimators = [
+        ('rf', base_rf),
+        ('lr', base_lr),
+    ]
+    
+    stack_clf = StackingClassifier(
+        estimators=estimators,
+        final_estimator=LogisticRegression(
+            max_iter=5000,
+            class_weight={0: 1, 1: 2, 2: 2},
+        ),
+        passthrough=True,
+        n_jobs=-1,
+    )
 
-    # --- Tune n_estimators for BaggingClassifier ---
-    n_values = [20, 50, 100]
-    best_n = None
-    best_cv_acc = -1.0
-
-    print("Tuning n_estimators for BaggingClassifier...")
-    for n in n_values:
-        bagging_tmp = BaggingClassifier(
-            estimator=base_lr,
-            n_estimators=n,
-            max_samples=1.0,
-            max_features=1.0,
-            bootstrap=True,
-            bootstrap_features=False,
-            n_jobs=-1,
-            random_state=42,
-        )
-        # 3-fold CV on the training data
-        scores = cross_val_score(
-            bagging_tmp,
-            X_train,
-            y_train,
-            cv=3,
-            scoring='accuracy',
-            n_jobs=-1,
-        )
-        mean_acc = scores.mean()
-        print(f"  n_estimators={n}: CV accuracy = {mean_acc:.4f}")
-
-        if mean_acc > best_cv_acc:
-            best_cv_acc = mean_acc
-            best_n = n
-
-    print(f"Best n_estimators based on CV: {best_n} (CV accuracy = {best_cv_acc:.4f})")
-
-    # --- Train final BaggingClassifier with best n_estimators ---
+    # --- Train final BaggingClassifier with 20 n_estimators ---
     bagging_clf = BaggingClassifier(
-        estimator=base_lr,
-        n_estimators=best_n,
+        estimator=stack_clf,
+        n_estimators=20,
         max_samples=1.0,
         max_features=1.0,
         bootstrap=True,
@@ -370,7 +397,6 @@ def train_model(X_train, y_train):
     print("Bagging model training complete.")
 
     return bagging_clf
-
 
 
 def evaluate_model(clf, X_test, y_test):
