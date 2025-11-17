@@ -20,7 +20,7 @@
 
 ### Report
 
-- [ ] Draft the report
+- [ ] Draft the report (Amanda)
 - [ ] Check the items in the rubric
 
 ## Overview
