@@ -4,13 +4,13 @@ import string
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
+# import seaborn as sns
 from sklearn.preprocessing import MultiLabelBinarizer, MinMaxScaler, PolynomialFeatures, StandardScaler
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.impute import SimpleImputer  # <-- Added for numeric imputation
 from sklearn.model_selection import cross_val_score, GridSearchCV, train_test_split
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier, StackingClassifier, VotingClassifier
+from sklearn.ensemble import RandomForestClassifier, StackingClassifier, VotingClassifier, BaggingClassifier
 from sklearn.calibration import CalibratedClassifierCV, CalibrationDisplay
 from sklearn.metrics import accuracy_score, multilabel_confusion_matrix, ConfusionMatrixDisplay, confusion_matrix, \
     classification_report, log_loss
@@ -67,7 +67,7 @@ def load_and_clean_data(file_name):
 
     return df
 
-def split_data(df, test_size=0.2, random_state=3):
+def split_data(df, test_size=0.2, random_state=42):
     """
     Splits the data into training and test sets based on unique student_id.
     """
@@ -116,8 +116,8 @@ def preprocess_train_features(df_train, target_tasks):
     transformers = {}
 
     # ---Multiselect Features---
-    mlb_best = MultiLabelBinarizer()
-    mlb_subopt = MultiLabelBinarizer()
+    mlb_best = MultiLabelBinarizer(classes=target_tasks)
+    mlb_subopt = MultiLabelBinarizer(classes=target_tasks)
 
     best_tasks_lists = process_multiselect(
         df_train['Which types of tasks do you feel this model handles best? (Select all that apply.)'],
@@ -300,43 +300,77 @@ def train_model(X_train, y_train):
     print("Running GridSearchCV for LogisticRegression...")
     param_grid_lr = [
         {'C': [0.2, 0.4, 0.6], 'penalty': ['elasticnet'], 'l1_ratio': [0.2, 1],
-         'solver': ['saga'], 'fit_intercept': [True, False], 'max_iter': [500],
-         'tol': [0.005]}
+         'solver': ['saga'], 'fit_intercept': [True, False], 'max_iter': [2000],
+         'tol': [0.001]}
     ]
-    lr = GridSearchCV(LogisticRegression(), param_grid_lr, cv=3, scoring='accuracy', refit=True, n_jobs=-1, verbose=1)
-    lr.fit(X_train, y_train)
-    print(f"Best LR Params: {lr.best_params_}")
+    lr_search = GridSearchCV(LogisticRegression(), param_grid_lr, cv=3, scoring='accuracy', refit=True, n_jobs=-1, verbose=1)
+    lr_search.fit(X_train, y_train)
+    print(f"Best LR Params: {lr_search.best_params_}")
 
-    # ---RF GridSearch---
-    print("Running GridSearchCV for RandomForestClassifier...")
-    param_grid_rf = [
-        {'n_estimators': [100, 200, 300], 'max_depth': [5, 10, 15],
-         'min_samples_split': [2, 5], 'min_samples_leaf': [1, 2]}
-    ]
-    rf = GridSearchCV(RandomForestClassifier(), param_grid_rf, cv=3, scoring='accuracy', refit=True, n_jobs=-1,
-                      verbose=1)
-    rf.fit(X_train, y_train)
-    print(f"Best RF Params: {rf.best_params_}")
-
-    # ---Stacking Classifier---
-    print("Training final StackingClassifier...")
-    estimators = [
-        ('rf', RandomForestClassifier(**rf.best_params_)),
-        ('lr', LogisticRegression(
-            fit_intercept=lr.best_params_['fit_intercept'],
-            max_iter=500, solver='saga', penalty='elasticnet',
-            C=lr.best_params_['C'], tol=0.005, l1_ratio=lr.best_params_['l1_ratio']
-        ))
-    ]
-
-    clf = StackingClassifier(
-        estimators=estimators,
-        final_estimator=LogisticRegression(max_iter=5000, class_weight={0: 1, 1: 2, 2: 2})
+    # --- Build tuned LogisticRegression base estimator ---
+    base_lr = LogisticRegression(
+        fit_intercept=lr_search.best_params_['fit_intercept'],
+        max_iter=lr_search.best_params_['max_iter'],
+        solver=lr_search.best_params_['solver'],
+        penalty=lr_search.best_params_['penalty'],
+        C=lr_search.best_params_['C'],
+        tol=lr_search.best_params_['tol'],
+        l1_ratio=lr_search.best_params_['l1_ratio'],
     )
 
-    clf.fit(X_train, y_train)
-    print("Model training complete.")
-    return clf
+    # --- Tune n_estimators for BaggingClassifier ---
+    n_values = [20, 50, 100]
+    best_n = None
+    best_cv_acc = -1.0
+
+    print("Tuning n_estimators for BaggingClassifier...")
+    for n in n_values:
+        bagging_tmp = BaggingClassifier(
+            estimator=base_lr,
+            n_estimators=n,
+            max_samples=1.0,
+            max_features=1.0,
+            bootstrap=True,
+            bootstrap_features=False,
+            n_jobs=-1,
+            random_state=42,
+        )
+        # 3-fold CV on the training data
+        scores = cross_val_score(
+            bagging_tmp,
+            X_train,
+            y_train,
+            cv=3,
+            scoring='accuracy',
+            n_jobs=-1,
+        )
+        mean_acc = scores.mean()
+        print(f"  n_estimators={n}: CV accuracy = {mean_acc:.4f}")
+
+        if mean_acc > best_cv_acc:
+            best_cv_acc = mean_acc
+            best_n = n
+
+    print(f"Best n_estimators based on CV: {best_n} (CV accuracy = {best_cv_acc:.4f})")
+
+    # --- Train final BaggingClassifier with best n_estimators ---
+    bagging_clf = BaggingClassifier(
+        estimator=base_lr,
+        n_estimators=best_n,
+        max_samples=1.0,
+        max_features=1.0,
+        bootstrap=True,
+        bootstrap_features=False,
+        n_jobs=-1,
+        random_state=42,
+    )
+
+    print("Fitting final BaggingClassifier with tuned LogisticRegression base estimator...")
+    bagging_clf.fit(X_train, y_train)
+    print("Bagging model training complete.")
+
+    return bagging_clf
+
 
 
 def evaluate_model(clf, X_test, y_test):
@@ -365,25 +399,27 @@ def evaluate_model(clf, X_test, y_test):
 
 
 def main():
-    file_name = "training_data_clean.csv"
+    file_name = "data/training_data_clean.csv"
 
     # 1) Load and Clean
     df = load_and_clean_data(file_name)
 
-    # 2) Split
-    df_train, df_test, y_train, y_test = split_data(df, test_size=0.2)
+    # 2) Get Task List
+    target_tasks = get_target_tasks(df)
 
-    # 3) Get Task List
-    target_tasks = get_target_tasks(df_train)
+    # 3) Split
+    df_train, df_test, y_train, y_test = split_data(df, test_size=0.2)
 
     # 4) Preprocess Features
     X_train, transformers = preprocess_train_features(df_train, target_tasks)
     X_test = preprocess_test_features(df_test, target_tasks, transformers)
 
     # 5) Train Model
+    print("Starting training of Bagged Logistic Regression model...")
     model = train_model(X_train, y_train)
 
     # 6) Evaluate Model
+    print("Training complete. Evaluating on test set...")
     evaluate_model(model, X_test, y_test)
 
 
