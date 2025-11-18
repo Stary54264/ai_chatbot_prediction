@@ -1,6 +1,6 @@
 import random
 import pandas as pd
-from sklearn.feature_extraction.text import CountVectorizer
+
 
 # Read dataset
 data_raw = pd.read_csv("data/data_raw.csv")
@@ -8,12 +8,12 @@ data_raw = pd.read_csv("data/data_raw.csv")
 
 # Split data (84%-16%)
 random.seed(311)
-stud = data_clean["id"].unique().tolist()
+stud = data_raw["student_id"].unique().tolist()
 random.shuffle(stud)
 train_id, test_id = stud[:231], stud[231:]
 
-data_train = data_clean[data_clean["id"].isin(train_id)]
-data_test = data_clean[data_clean["id"].isin(test_id)]
+data_train = data_raw[data_raw["student_id"].isin(train_id)]
+data_test = data_raw[data_raw["student_id"].isin(test_id)]
 
 
 # Write splitted dataset to .csv file
