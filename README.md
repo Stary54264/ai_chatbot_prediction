@@ -4,7 +4,7 @@
 
 ### Data
 
-- [ ] Split and clean data (Yanzun)
+- [X] Split and clean data (Yanzun)
 
 ### Model
 
@@ -22,6 +22,8 @@
 
 - [ ] Draft the report (Amanda)
 - [ ] Check the items in the rubric
+- [ ] Cite packages used
+- [ ] Convert .docx to .tex (or .rmd/.qmd)
 
 ## Overview
 
