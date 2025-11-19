@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics import accuracy_score, classification_report, \
+    confusion_matrix
 from sklearn.model_selection import GridSearchCV, GroupKFold
 from sklearn.ensemble import BaggingClassifier
 from sklearn.naive_bayes import CategoricalNB
@@ -28,7 +30,7 @@ def load_clean(path_raw: str):
         "id", "t1", "n1", "c1", "n2",
         "c2", "t2", "n3", "n4", "t3", "label"
     ]
-    
+
     return data_clean
 
 
@@ -47,7 +49,7 @@ def vec(df: pd.DataFrame, vl: list[CountVectorizer]):
     # Vectorize `choice` columns
     option = ["computation", "code", "analysis", "concept",
               "format", "essay", "text", "idea"]
-    
+
     for c in range(1, 3):
         for opt in option:
             data_vec[f"c{c}_{opt}"] = df[f"c{c}"].str.contains(opt).astype(int)
@@ -74,7 +76,8 @@ def vec(df: pd.DataFrame, vl: list[CountVectorizer]):
 # 2. Train and validate the bagging Naive Bayes model
 # ---------------------------------------------------------------------
 
-def train_valid_bagged_nb(X: np.ndarray, t: np.ndarray, groups: np.ndarray, n: int):
+def train_valid_bagged_nb(X: np.ndarray, t: np.ndarray,
+                          groups: np.ndarray, n: int):
     """
     Grid search for Bagged Naive Bayes.
     """
@@ -84,13 +87,13 @@ def train_valid_bagged_nb(X: np.ndarray, t: np.ndarray, groups: np.ndarray, n: i
         estimator=CategoricalNB(min_categories=categ),
         random_state=311
     )
-    
+
     # Create the parameter grid to search on
     param_grid = {
         "n_estimators": [10, 30, 50, 100],
         "estimator__alpha": [0.1, 0.5, 1.0, 2.0, 5.0]
     }
-    
+
     # Train and validate the model
     grid = GridSearchCV(
         estimator=bagged_nb,
@@ -100,12 +103,12 @@ def train_valid_bagged_nb(X: np.ndarray, t: np.ndarray, groups: np.ndarray, n: i
         n_jobs=-1
     )
     grid.fit(X, t, groups=groups)
-    
+
     # Print the result
     print("=== Bagged Naive Bayes ===")
     print(f"Best parameters: {grid.best_params_}")
     print(f"Best cross-validation score: {grid.best_score_:.4f}")
-    
+
     return grid.best_estimator_
 
 
@@ -115,35 +118,35 @@ def train_valid_bagged_nb(X: np.ndarray, t: np.ndarray, groups: np.ndarray, n: i
 
 def main():
     # 1. Load and vectorize data
-    train = load_clean("data/data_train.csv")
-    test = load_clean("data/data_test.csv")
-    
+    train = load_clean("../data/data_train.csv")
+    test = load_clean("../data/data_test.csv")
+
     vs = []
     for i in range(1, 4):
         v = CountVectorizer(max_features=3000, binary=True)
         v.fit(train[f"t{i}"])
         vs.append(v)
-    
+
     train_vec = vec(train, vs)
     test_vec = vec(test, vs)
-    
+
     ids = train_vec['id'].values
     X_train = train_vec.drop(["id", "label"], axis=1).values
     t_train = train_vec["label"].values
     X_test = test_vec.drop(["id", "label"], axis=1).values
     t_test = test_vec["label"].values
 
-
     # 2. Bagged Naive Bayes model
     best_model = train_valid_bagged_nb(X_train, t_train, ids, 7)
     y = best_model.predict(X_test)
     accuracy = accuracy_score(t_test, y)
-    
+
     print(f"Test Accuracy: {accuracy:.4f}")
     print("\nConfusion Matrix:")
     print(confusion_matrix(t_test, y))
     print("\nClassification Report:")
     print(classification_report(t_test, y))
+
 
 if __name__ == "__main__":
     main()
