@@ -5,10 +5,7 @@ import pandas as pd
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 
-
-# ---------------------------------------------------------------------
 # 1. Data loading and preprocessing (copied from naive_bayes.ipynb)
-# ---------------------------------------------------------------------
 
 def load_and_vectorize(path_raw: str = "data/data_raw.csv"):
     """
@@ -31,14 +28,12 @@ def load_and_vectorize(path_raw: str = "data/data_raw.csv"):
     # Start feature matrix with student id
     data_vec = data_clean[["id"]].copy()
 
-    # Vectorize `choice` columns (same logic as in the notebook)
+    # Vectorize `choice` columns
     option = ["computation", "code", "analysis", "concept",
               "format", "essay", "text", "idea"]
 
     for i in range(1, 3):
         for opt in option:
-            # NOTE: this intentionally mirrors the notebook implementation
-            # so that the feature space is identical.
             data_vec[f"c{i}_{opt}"] = data_clean[f"c{1}"].str.contains(opt).astype(int)
 
     # Vectorize `text` columns using a bag-of-words representation
@@ -53,7 +48,7 @@ def load_and_vectorize(path_raw: str = "data/data_raw.csv"):
     # Convert labels to {0, 1, 2}
     data_vec["label"] = pd.factorize(data_clean["label"])[0]
 
-    # Split data (68%-16%-16%) by id, as in the notebook
+    # Split data (68%-16%-16%) by id
     random.seed(311)
     stud = data_vec["id"].unique().tolist()
     random.shuffle(stud)
@@ -75,9 +70,7 @@ def load_and_vectorize(path_raw: str = "data/data_raw.csv"):
     return X_train, t_train, X_valid, t_valid, X_test, t_test
 
 
-# ---------------------------------------------------------------------
 # 2. Original Naive Bayes implementation (3-class, Bernoulli features)
-# ---------------------------------------------------------------------
 
 def nb_map3(X: np.ndarray, t: np.ndarray, a: float, b: float):
     """
@@ -86,7 +79,6 @@ def nb_map3(X: np.ndarray, t: np.ndarray, a: float, b: float):
     feature probabilities theta.
 
     Parameters
-    ----------
     X : array of shape (N, V)
         Binary bag-of-words features.
     t : array of shape (N,)
@@ -95,7 +87,6 @@ def nb_map3(X: np.ndarray, t: np.ndarray, a: float, b: float):
         Hyperparameters of the Beta prior.
 
     Returns
-    -------
     pi : array of shape (3,)
         Class prior probabilities.
     theta : array of shape (V, 3)
@@ -128,13 +119,11 @@ def pred3(X: np.ndarray, pi: np.ndarray, theta: np.ndarray):
     3-class Bernoulli Naive Bayes model.
 
     Parameters
-    ----------
     X : array of shape (N, V)
     pi : array of shape (3,)
     theta : array of shape (V, 3)
 
     Returns
-    -------
     y : array of shape (N,)
         Predicted class labels in {0, 1, 2}.
     """
@@ -158,16 +147,12 @@ def pred3(X: np.ndarray, pi: np.ndarray, theta: np.ndarray):
     return np.argmax(log_p, axis=1)
 
 
-# ---------------------------------------------------------------------
 # 3. Bagging wrapper around the Naive Bayes model
-# ---------------------------------------------------------------------
 
 class BaggingNaiveBayes:
     """
-    Bagging (Bootstrap Aggregating) ensemble using the custom
+    Bagging ensemble using the custom
     3-class Naive Bayes model defined above.
-
-    The idea is to:
       1. Draw B bootstrap samples from the training set.
       2. Fit one Naive Bayes model on each bootstrap sample.
       3. Aggregate predictions using majority vote.
@@ -179,7 +164,7 @@ class BaggingNaiveBayes:
         self.a = a
         self.b = b
         self.random_state = random_state
-        self.models_ = []  # list of (pi, theta) tuples
+        self.models_ = []
 
     def fit(self, X: np.ndarray, t: np.ndarray):
         """
@@ -229,21 +214,13 @@ class BaggingNaiveBayes:
         return y_pred
 
 
-# ---------------------------------------------------------------------
-# 4. Putting everything together: evaluation script
-# ---------------------------------------------------------------------
+# 4. Evaluation
 
 def main():
     # 1. Load and vectorize data
     X_train, t_train, X_valid, t_valid, X_test, t_test = load_and_vectorize()
 
-    # 2. Choose hyperparameters (a, b)
-    #    In the original notebook, these were tuned on a grid.
-    #    Here, for simplicity, you can either:
-    #      - plug in the best (a, b) found previously, or
-    #      - keep a fixed reasonable choice (e.g., a = b = 2.0).
-    #    If you already know the optimal a_opt and b_opt from the notebook,
-    #    you can paste them here directly.
+    # 2. Choose hyperparameters (a,b)
     a_opt = 1.4
     b_opt = 5.0
     def tune_hyperparameters(X_train, t_train, X_valid, t_valid):
@@ -317,7 +294,7 @@ def main():
     print(f"Test  accuracy: {accuracy_score(t_test, y_test_bag):.3f}")
     print()
 
-    # Optional: print a confusion matrix and classification report on the test set
+    # 5. Confusion matrix and classification report on the test set
     print("Confusion matrix (test, Bagged Naive Bayes):")
     print(confusion_matrix(t_test, y_test_bag))
     print()
