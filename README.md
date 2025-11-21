@@ -2,26 +2,18 @@
 
 ## To-do
 
-### Data
-
-- [ ] Split and clean data (Yanzun)
-
-### Model
+### Code
 
 - [ ] Organize and zip the code and data
 
-#### Naive Bayes
-
-- [ ] Make the function compatible for new data (Yanzun)
-
-#### Logistic Regression
-
-#### Random Forest
+- [ ] Write `pred.py`
 
 ### Report
 
-- [ ] Draft the report (Amanda)
+- [ ] Draft the report
 - [ ] Check the items in the rubric
+- [ ] Cite packages used
+- [ ] Convert .docx to .tex (or .rmd/.qmd)
 
 ## Overview
 

@@ -425,7 +425,7 @@ def evaluate_model(clf, X_test, y_test):
 
 
 def main():
-    file_name = "data/training_data_clean.csv"
+    file_name = "../data/training_data_clean.csv"
 
     # 1) Load and Clean
     df = load_and_clean_data(file_name)
