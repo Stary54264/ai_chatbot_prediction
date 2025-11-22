@@ -308,9 +308,9 @@ def main():
     print(f"Train-Test gap: {train_acc - test_acc:.4f}")
     
     if train_acc - test_acc > 0.15:
-        print("⚠️  Warning: Possible overfitting (gap > 0.15)")
+        print("Warning: Possible overfitting (gap > 0.15)")
     else:
-        print("✓ Good generalization!")
+        print("Good generalization")
     
     print("\nConfusion matrix:")
     print(confusion_matrix(y_test, y_pred))
