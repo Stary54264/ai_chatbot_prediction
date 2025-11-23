@@ -280,13 +280,35 @@ def main():
 
     print(f"Feature matrix shape: {X_train.shape}\n")
 
-    # ===== TRAIN NAIVE BAYES =====
-    nb = MultinomialNB(alpha=0.1)
+    # ===== TRAIN NAIVE BAYES WITH ALPHA TUNING =====
+    print("="*70)
+    print("TUNING ALPHA PARAMETER")
+    print("="*70)
+
+    alphas = [0.01, 0.05, 0.1, 0.2, 0.5, 1.0]
+    best_alpha = None
+    best_val_acc = 0
+
+    for alpha in alphas:
+        nb_temp = MultinomialNB(alpha=alpha)
+        nb_temp.fit(X_train, y_train)
+        val_acc = nb_temp.score(X_val, y_val)
+        
+        print(f"Alpha={alpha:.2f}: Val accuracy={val_acc:.4f}")
+        
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            best_alpha = alpha
+
+    print(f"\nBest alpha: {best_alpha}")
+    print(f"Best validation accuracy: {best_val_acc:.4f}")
+
+    # Use best alpha for final training
+    nb = MultinomialNB(alpha=best_alpha)
     nb.fit(X_train, y_train)
 
-    # Evaluate on validation set
     val_acc = nb.score(X_val, y_val)
-    print(f"Validation accuracy: {val_acc:.4f}")
+    print(f"\nValidation accuracy with best alpha: {val_acc:.4f}")
 
     # Retrain on train + val
     print("\nRetraining on train + val combined...")
