@@ -1,0 +1,105 @@
+\documentclass[12pt, letterpaper]{article}
+
+\usepackage[margin=1in]{geometry}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+
+\usepackage{graphicx}
+\usepackage{xcolor}
+
+\usepackage[hidelinks]{hyperref}
+
+\usepackage{setspace}
+
+\setlength\parindent{0pt}
+
+\onehalfspacing
+
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    
+    {\Large CSC311: Introduction to Machine Learning \par}
+    
+    \vspace{1.5cm} % Vertical spacing
+    
+    % Document Type
+    {\large Project Report \par}
+    
+    \vspace{1.5cm}
+    
+    % Creative Title (Italicized as per image)
+    {\Large \textit{Generative AI Classifier} \par}
+    
+    \vspace{3cm}
+    
+    % Submission Section
+    {\large Submitted by \par}
+    \vspace{0.5cm}
+    {\large Amanda Wu, Emma Chow, Yanzun Jiang, Yousef Ibrahims \par}
+    
+    \vfill % Pushes the following content to the very bottom of the page
+    
+    % Institution and Date
+    {\large University of Toronto \par}
+    {\large Fall 2025 \par}
+
+    
+\end{titlepage}
+
+% --- REST OF CONTENT GOES HERE ---
+\newpage
+\section{Executive Summary}
+In this project, we evaluated five different model families for predicting which large language model (ChatGPT, Claude, or Gemini) generated each response: $k$-Nearest Neighbours (KNN), Naive Bayes, a mixed model stacked classifier using logisitc regression and Decision tree ensemble (“polyreg”), neural networks, and decision tree based models such as Random Forests. Among these approaches, the polyreg model achieved the highest and most stable accuracy, reaching approximately 73\% on unseen data. We believe that this is due to stacking two fundamentally different classifiers which capture different aspects of the data through different classification confidence.
+
+\section{Data Exploration}
+Our dataset contains 275 students, to give a total of 825 data points, each labeled as ChatGPT, Claude, or Gemini. Each row has a mix of feature types: 3 open-ended text responses, 2 multi-select categorical questions, 4 Likert-scale ratings, and a model label. These features show a mixture of textual, categorical, and ordinal data. Since each student contributes exactly one response per model, the dataset is naturally balanced across three classes, so no concerns about label imbalance.
+
+During exploration, we identified specific data consistency issues that required attention. Some rows contained missing values, especially in the text and multi-select fields, and several cells included the placeholder "\#NAME?". The open-ended responses also contained some noise, including bracketed text references such as "[THIS MODEL]". The numerical features were encoded as strings mixed with text (e.g., "4 — Often"), preventing direct analysis.
+
+To pre-process the data, we first imputed missing values to avoid dropping rows with some missing responses. We then cleaned the text responses by removing placeholders and punctuation and standardizing formatting for better model predictions. We then used TF-IDF vectorization to convert the three open-ended responses into numerical features. For the two multi-select questions, we extracted all task types from the training split and encoded each row with a MultiLabelBinarizer to obtain multi-hot vectors. These transformations were done so that they can be used for a supervised learning problem. For the rating fields, we extracted the leading numeric value and scaled all four ratings using MinMax scaling so they would be on comparable magnitudes with the text vectors to reduce feature bias. After these transformations, all numerical, textual, and categorical features were concatenated into a single feature matrix, which served as the input for our models.
+
+We avoided using pre-made dataset splitting solutions as all responses by a student must be kept together. This prevents our model from "peaking" into the test set as a student's responses' are related. To avoid this data leakage, we performed a grouped split using “student\_id” to ensure that all three responses from a given student always remain in the same split. We reserved 16\% of the unique student IDs for the test set and used the remaining 84\% for training and validation.
+Finally, the insights from exploration influenced our model choices. The application of TF-IDF and MultiLabelBinarizer resulted in a high-dimensional, sparse dataset. This observation led us to deprioritize simpler distance-based methods like KNN, which often struggle with the "curse of dimensionality" in such spaces. Instead, we focused on models that work better with sparse, high-dimensional features: logistic regression with polynomial terms, random forests, neural networks, and Naive Bayes. We also wanted to test whether the relationships in our data were linear or more complex, so comparing these different model types made sense. Numerically data was of great importance when text data lacked depth. However, text data was more revealing when they had depth. 
+\newpage
+\section{Methodology}
+We made the choice to focus on three model families: Decision tree ensembles (Random Forest), Naive Bayes, and a stacked classifier using logisitc regression with a polynomial feature map and random forests. These felt appropriate as they were able to handle high data irregularity as we could tell little about the data's distribution. For the logistic regression model in the stacked classifier, we used the saga optimizer with high $L_1$ ratio regularization strength. For all three models, \textcolor{red}{we considered accuracy and recall as our main evaluation metrics,} as this classification is not concerned with the consequences of a false positive, which warrants an optimization of precision 
+
+\subsection{Naive Bayes}
+For the Naive Bayes classifier, we utilised a simple train-validation-test split to tune our $\alpha$ smoothing value. We have used values \textcolor{red}{\textbf{TO DO}}
+
+We used sklearn's MultinomialNB for learning all model parameters and during hyperparameter tuning, and (\textcolor{red}{TDL}.
+
+\subsection{Random Forest}
+For the Random Forest classifier, we made use of 3-fold cross-validation to train the hyperparameters
+\begin{enumerate}
+    \item Number of estimators: 100, 200, 300
+    \item Maximum tree depth: 5, 10, 15, None
+    \item Minimum samples for a split: 2, 5, 8
+    \item Minimum samples in a leaf: 1, 5, 10
+\end{enumerate}
+
+ with sklearn's GridSearchCV with accuracy scoring as it is the most interpretable and significant for the task; we are not incentivized to be cautious classifying one class, or especially liberal with one class.
+
+\subsection{Stacked Classifier}
+For the stacked classifier, we made use of a 3 fold cross validation to train the hyperparameters
+\begin{enumerate}
+    \item Number of estimators: 100, 200, 300
+    \item Maximum tree depth: 5, 10, 15, None
+    \item Minimum samples for a split: 2, 5, 8
+    \item Minimum samples in a leaf: 1, 5, 10
+\end{enumerate}
+for the random forest, and 
+\begin{enumerate}
+    \item Inverse regularisation strength: [0.2, 0.4, 0.6], 
+    \item $L_1$\_ratio: [0.2, 1]
+    \item fit\_intercept: [True, False] 
+\end{enumerate}
+with sklearn's GridSearchCV with accuracy scoring for the same reason as the previous model.
+
+\end{document}
