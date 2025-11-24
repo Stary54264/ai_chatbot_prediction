@@ -228,9 +228,9 @@ def main():
     tr2_te = df_test[df_test.columns[-2]].fillna("").astype(str).values
     tr3_te = df_test[df_test.columns[-5]].fillna("").astype(str).values
 
-    v1 = TfidfVectorizer(max_features=1000, stop_words="english", strip_accents="unicode")
-    v2 = TfidfVectorizer(max_features=1000, stop_words="english", strip_accents="unicode")
-    v3 = TfidfVectorizer(max_features=1000, stop_words="english", strip_accents="unicode")
+    v1 = TfidfVectorizer(max_features=60, stop_words="english", strip_accents="unicode")
+    v2 = TfidfVectorizer(max_features=60, stop_words="english", strip_accents="unicode")
+    v3 = TfidfVectorizer(max_features=60, stop_words="english", strip_accents="unicode")
 
     tr1_tr_vec = v1.fit_transform(tr1_tr).toarray()
     tr2_tr_vec = v2.fit_transform(tr2_tr).toarray()
