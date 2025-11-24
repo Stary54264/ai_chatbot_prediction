@@ -1,20 +1,5 @@
 # AI Chatbot Prediction
 
-## To-do
-
-### Code
-
-- [ ] Organize and zip the code and data
-
-- [ ] Write `pred.py`
-
-### Report
-
-- [ ] Draft the report
-- [ ] Check the items in the rubric
-- [ ] Cite packages used
-- [ ] Convert .docx to .tex (or .rmd/.qmd)
-
 ## Overview
 
 This repo contains the prediction of different AI chatbots using various ML models.
