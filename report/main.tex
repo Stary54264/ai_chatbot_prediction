@@ -26,33 +26,28 @@
     
     {\Large CSC311: Introduction to Machine Learning \par}
     
-    \vspace{1.5cm} % Vertical spacing
+    \vspace{1.5cm}
     
-    % Document Type
     {\large Project Report \par}
     
     \vspace{1.5cm}
     
-    % Creative Title (Italicized as per image)
-    {\Large \textit{Generative AI Classifier} \par}
+    {\Large \textit{Generative AI Classification} \par}
     
     \vspace{3cm}
     
-    % Submission Section
     {\large Submitted by \par}
     \vspace{0.5cm}
     {\large Amanda Wu, Emma Chow, Yanzun Jiang, Yousef Ibrahims \par}
     
-    \vfill % Pushes the following content to the very bottom of the page
+    \vfill
     
-    % Institution and Date
     {\large University of Toronto \par}
     {\large Fall 2025 \par}
 
     
 \end{titlepage}
 
-% --- REST OF CONTENT GOES HERE ---
 \newpage
 \section{Executive Summary}
 \qquad In this project, we evaluated three different model families for predicting which large language model (ChatGPT, Claude, or Gemini) generated each response: Bagged Naive Bayes, Polytomous Logistic Regression, and Random Forest. Among these approaches, Bagged Naive Bayes model achieved the highest and most stable accuracy, reaching approximately 73\% on unseen data. Naive Bayes stood out as the best model because it handled our high-dimensional, text-heavy features more reliably than more complex approaches.
@@ -84,9 +79,9 @@
 \subsection{Naive Bayes}
 \qquad Naive Bayes was appropriate as it had little parameters and hyperparameters to learn, which made it quick; this made it more feasible to train as we were dealing with high dimensional text data. Moreover, although the responses were definitely dependent, it seemed that this dependence was not high enough when compared to what each feature contributed in isolation. Despite the naive assumption, the model performed surprisingly well.
 
-\qquad For validation, we employed k-Fold cross-validation with 7 splits, using the student ID as the grouping variable. The hyperparameter tuning process used `GridSearchCV` to explore combinations of two key parameters: the number of simple Naive Bayes models in the bagging ensemble (n\_estimators: 10, 30, 50, 100) and the smoothing parameter (alpha: 0.1, 0.5, 1.0, 2.0, 5.0). Smaller alpha values (0.01-0.1) trust the training data more, while larger values (0.5-1.0) apply stronger smoothing. Our validation results showed that alpha values between 0.1 and 0.2 achieved the best performance (70-73\% validation accuracy). After selecting the optimal alpha, we retrained on the combined training and validation sets before final test evaluation.
+\qquad For validation, we employed k-Fold cross-validation with 7 splits, using the student ID as the grouping variable. The hyperparameter tuning process used 'GridSearchCV' to explore combinations of two key parameters: the number of simple Naive Bayes models in the bagging ensemble (n\_estimators: 10, 30, 50, 100) and the smoothing parameter (alpha: 0.1, 0.5, 1.0, 2.0, 5.0). Smaller alpha values (0.01-0.1) trust the training data more, while larger values (0.5-1.0) apply stronger smoothing. Our validation results showed that alpha values between 0.1 and 0.2 achieved the best performance (70-73\% validation accuracy). After selecting the optimal alpha, we retrained on the combined training and validation sets before final test evaluation.
 
-\qquad For Bagged Naive Bayes, we explored n\_estimators [10, 30, 50, 100] and `alpha` [0.1, 0.5, 1.0, 2.0, 5.0]. These values were chosen to cover a reasonable range - for n\_estimators, starting from a modest ensemble size of 10 up to 100 to balance performance and computational cost, while for alpha, covering both smaller values (0.1, 0.5) for minimal smoothing and larger values (2.0, 5.0) for stronger regularization.
+\qquad For Bagged Naive Bayes, we explored n\_estimators [10, 30, 50, 100] and 'alpha' [0.1, 0.5, 1.0, 2.0, 5.0]. These values were chosen to cover a reasonable range - for n\_estimators, starting from a modest ensemble size of 10 up to 100 to balance performance and computational cost, while for alpha, covering both smaller values (0.1, 0.5) for minimal smoothing and larger values (2.0, 5.0) for stronger regularization.
 
 \qquad For evaluation, we used accuracy as our primary metric because the dataset is perfectly balanced across the three classes, making accuracy directly interpretable. To better understand class-specific behaviour, we also examined additional metrics, primarily recall, which gave us a sense of how well our model was identifying specific LLMs.
 
@@ -110,7 +105,7 @@
 
 
 \section{Results}
-\qquad We evaluated our Naive Bayes model (with optimal n\_estimators=100, alpha=0.5) across 200 different random seeds to systematically verify that our performance is not an artifact of a particular data split. Each seed produces an independent 84-16 train-test partition at the student level, ensuring no overlap in the students between splits.
+\qquad We evaluated our Naive Bayes model (with optimal n\_estimators=100, alpha=0.1) across 200 different random seeds to systematically verify that our performance is not an artifact of a particular data split. Each seed produces an independent 84-16 train-test partition at the student level, ensuring no overlap in the students between splits.
 Out of 200 seeds tested, we found 31 seeds (15.5\%) that achieved test accuracy of 70\% or higher, with test accuracies ranging from 70.45\% to 75.00\%. This high success rate demonstrates that strong performance is achievable across many different data configurations, not just a single fortunate split.
 
 \qquad Across 46 random runs, the following confusion matrix was produced.
